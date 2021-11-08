@@ -5,6 +5,7 @@ import com.example.solr.repository.EmployeeRepository;
 import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.response.FacetField;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ public class EmployeeController {
         employees.add(new Employee(374, "Karthik", new String[] { "Mumbai", "BOM" }));
         employees.add(new Employee(909, "Kirti", new String[] { "Pune", "PQR" }));
         employees.add(new Employee(322, "Piyush", new String[] { "Nagpur", "NGP" }));
+        employees.add(new Employee(373, "Basant", new String[] { "Bangalore", "BTM" }));
+        employees.add(new Employee(908, "Santosh", new String[] { "Hyderbad", "XYZ" }));
+        employees.add(new Employee(321, "Sagar", new String[] { "Pune", "PQR" }));
         repository.saveAll(employees);
     }
 
@@ -66,14 +70,37 @@ public class EmployeeController {
     public SolrDocumentList getEmployeeByNameCustom(@PathVariable String name) {
 
         SolrQuery query = new SolrQuery();
-        query.set("q","*:*");
-        query.set("fl","id");
+        query.set("q","name:"+name);
+        query.set("fl","id,address");
+
+        query.setFacet(true);
+        query.addFacetField("id");
+        query.setFacetMinCount(1);
+        query.setFacetLimit(10);
+
+        //query.
 
         try {
             QueryResponse response = solrClient.query(solrDataName, query);
             //System.out.print(response);
+
+
             SolrDocumentList solrDocumentList = response.getResults();
             //System.out.print(solrDocumentList);
+
+
+            List<FacetField> facetFields =response.getFacetFields();
+            for (int i = 0; i < facetFields.size(); i++) {
+                FacetField facetField = facetFields.get(i);
+                List<FacetField.Count> facetInfo = facetField.getValues();
+
+                for (FacetField.Count facetInstance : facetInfo) {
+                    System.out.println(facetInstance.getName() + " : " +
+                            facetInstance.getCount() + " [drilldown qry:" +
+                            facetInstance.getAsFilterQuery());
+                }
+            }
+
             return solrDocumentList;
         } catch (SolrServerException e) {
             e.printStackTrace();
